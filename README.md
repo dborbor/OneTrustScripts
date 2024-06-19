@@ -23,7 +23,7 @@ This Python script is designed to automate the extraction of vendor data from th
       pip install pandas httpx python-dotenv retry
       ```
 - **OneTrust API Key:** You'll need a valid API key for authentication with the OneTrust API. Obtain this from your OneTrust account.
-- **.env File:** Create a `.env` file in the same directory as the script and add the following line, replacing `your_api_key` with your actual API key:  APP_API_KEY=your_api_key
+- **.env File:** Create a `.env` file in the same directory as the script and add the following line, replacing `your_api_key` with your actual API key: `APP_API_KEY=your_api_key`
 ### Configuration
 
 - **File Paths:** Update `SHAREPOINT_PATH_MACOS` and `SHAREPOINT_PATH_WINDOWS` in the script to reflect the correct paths to your SharePoint library (if you want to use SharePoint).

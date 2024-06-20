@@ -160,23 +160,25 @@ def log_rate_limit_headers(response):
 
 async def get_microservice_df(microservice: str) -> pd.DataFrame:
     """
-    Retrieves data from the OneTrust API for a specified microservice ("scim" or "inventory").
+    Asynchronously retrieves paginated data from the OneTrust API for a specified microservice ("scim" or "inventory").
 
     This asynchronous function fetches data from the OneTrust API in paginated requests,
-    normalizes the JSON response into a Pandas DataFrame, and handles rate limiting.
+    handling pagination and potential rate limiting,
+    normalizes the JSON response into a Pandas DataFrame,.
 
     Args:
-        microservice (str): The name of the microservice. Valid values are "scim" (for users)
-                            and "inventory" (for vendors).
+        microservice (str): The name of the microservice. Must be one of the following:
+            * "scim": Retrieves user data.
+            * "inventory": Retrieves vendor data.
 
     Returns:
         pd.DataFrame: A DataFrame containing the retrieved data in a normalized format.
 
     Raises:
         KeyError: If an invalid microservice name is provided.
-        httpx.ConnectTimeout: If a connection to the server cannot be established within 10 seconds.
-        httpx.ReadTimeout: If the server does not send data within 30 seconds of connecting.
-        httpx.TimeoutException: If the entire request (connect + read) takes longer than the combined timeout.
+        httpx.ConnectTimeout: If a connection to the server cannot be established within the given timeout.
+        httpx.ReadTimeout: If the server does not send data within the given timeout.
+        httpx.TimeoutException: If the entire request (connect + read) takes longer than the given timeout.
         httpx.NetworkError: For general network-related errors.
         httpx.HTTPError: For other HTTP errors (e.g., status codes 4xx and 5xx).
     """

@@ -35,7 +35,7 @@ SHAREPOINT_PATH_WINDOWS = r"~\OneDrive - DBInc\OneTrust"
 
 
 @retry(tries=3, delay=1, backoff=2, logger=logger)  # 3 retries, 1s initial delay, doubling backoff
-async def get_http_response(url: str, headers: dict) -> httpx.Response:
+async def get_http_response(url: str, headers: dict, client: httpx.AsyncClient) -> httpx.Response:
     """
     Asynchronously retrieves an HTTP response from a given URL with retry logic.
 
@@ -56,14 +56,14 @@ async def get_http_response(url: str, headers: dict) -> httpx.Response:
         httpx.NetworkError: For general network-related errors.
         httpx.HTTPError: For other HTTP errors (e.g., status codes 4xx and 5xx).
     """
-    # Setting a connection timeout of 10s and a read timeout of 30s
-    timeout = httpx.Timeout(connect_timeout, read=read_timeout)
+    # # Setting a connection timeout of 10s and a read timeout of 30s
+    # timeout = httpx.Timeout(connect_timeout, read=read_timeout)
     logging.info(f"Sending request to {url}")
     try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
-            response = await client.get(url, headers=headers)
-            logging.info(f"Received response from URL: {url}, status code: {response.status_code}")
-            return response
+        # async with httpx.AsyncClient(timeout=timeout) as client:
+        response = await client.get(url, headers=headers)
+        logging.info(f"Received response from URL: {url}, status code: {response.status_code}")
+        return response
     except (httpx.ConnectTimeout,
             httpx.ReadTimeout,
             httpx.TimeoutException,

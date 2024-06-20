@@ -1,6 +1,5 @@
 import os
 import json
-import time
 import httpx
 import asyncio
 import logging
@@ -29,6 +28,7 @@ default_category: str = "category_not_set"
 unique_filename: bool = False  # Change this value to have a timestamped filename
 connect_timeout: float = 10.0
 read_timeout: float = 30.0
+timeout: float = 30.0
 
 SHAREPOINT_PATH_MACOS = "~/Library/CloudStorage/OneDrive-SharedLibraries-DBInc/OneTrust"
 SHAREPOINT_PATH_WINDOWS = r"~\OneDrive - DBInc\OneTrust"
@@ -205,16 +205,18 @@ async def get_microservice_df(microservice: str) -> pd.DataFrame:
     current_index = initial_index
     has_more_pages = True
 
-    async with httpx.AsyncClient() as client:
+    # async with httpx.AsyncClient(timeout=httpx.Timeout(connect=connect_timeout, read=read_timeout)) as client:
+    async with httpx.AsyncClient(timeout=httpx.Timeout(timeout=timeout)) as client:
         while has_more_pages:
             url = url_t.format(current_index=current_index, count=page_size)
             # Retry logic for handling timeouts
-            response = await get_http_response(url, ot_headers)
+            response = await get_http_response(url, ot_headers, client)  # Passing the client object
             while response.status_code == 429:
                 logging.warning("Rate limit exceeded. Retrying after delay...")
                 log_rate_limit_headers(response)
                 retry_after = int(response.headers.get("Retry-After", 1))  # Default to 1 second if not provided
-                time.sleep(retry_after)
+                # time.sleep(retry_after)
+                await asyncio.sleep(retry_after)  # Sleep for the time indicated in the response header before retrying
                 response = await get_http_response(url, ot_headers, client)  # Retry the request
 
             handle_response_status(response)  # Check for errors and raise exceptions if needed.

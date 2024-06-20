@@ -38,7 +38,7 @@ async def get_http_response(url: str, headers: dict, client: httpx.AsyncClient) 
     Asynchronously retrieves an HTTP response from a given URL with retry logic.
 
     This function uses `httpx.AsyncClient` to make a GET request to the specified URL. It includes
-    automatic retry functionality to handle common network errors.
+    automatic retry functionality to handle common network errors, retrying up to 3 times with exponential backoff.
 
     Args:
         url (str): The URL to request.
@@ -46,12 +46,13 @@ async def get_http_response(url: str, headers: dict, client: httpx.AsyncClient) 
         client (httpx.AsyncClient): The AsyncClient instance to use for making the request.
 
     Returns:
-        httpx.Response: The HTTP response object returned by the server.
+        httpx.Response: The HTTP response object returned by the server if the request is successful.
 
     Raises:
-        httpx.ConnectTimeout: If a connection cannot be established within the given `connect_timeout`.
-        httpx.ReadTimeout: If the server doesn't send data within the given `read_timeout`.
-        httpx.TimeoutException: If the entire request (connect + read) takes longer than the combined timeout.
+        httpx.ConnectTimeout: If a connection cannot be established to the server.
+        httpx.ReadTimeout: If the server does not send data within the timeout defined within the AsyncClient.
+        httpx.TimeoutException: If the entire request (connect + read) takes longer than the timeout defined
+                                within the AsyncClient.
         httpx.NetworkError: For general network-related errors.
         httpx.HTTPError: For other HTTP errors (e.g., status codes 4xx and 5xx).
     """

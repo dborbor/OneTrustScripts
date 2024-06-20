@@ -26,8 +26,6 @@ default_owner_id: str = "owner_id_not_set"
 default_category: str = "category_not_set"
 
 unique_filename: bool = False  # Change this value to have a timestamped filename
-connect_timeout: float = 10.0
-read_timeout: float = 30.0
 timeout: float = 30.0
 
 SHAREPOINT_PATH_MACOS = "~/Library/CloudStorage/OneDrive-SharedLibraries-DBInc/OneTrust"

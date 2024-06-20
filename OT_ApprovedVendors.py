@@ -57,8 +57,6 @@ async def get_http_response(url: str, headers: dict, client: httpx.AsyncClient) 
         httpx.NetworkError: For general network-related errors.
         httpx.HTTPError: For other HTTP errors (e.g., status codes 4xx and 5xx).
     """
-    # # Setting a connection timeout of 10s and a read timeout of 30s
-    # timeout = httpx.Timeout(connect_timeout, read=read_timeout)
     logging.info(f"Sending request to {url}")
     try:
         # async with httpx.AsyncClient(timeout=timeout) as client:
@@ -205,7 +203,6 @@ async def get_microservice_df(microservice: str) -> pd.DataFrame:
     current_index = initial_index
     has_more_pages = True
 
-    # async with httpx.AsyncClient(timeout=httpx.Timeout(connect=connect_timeout, read=read_timeout)) as client:
     async with httpx.AsyncClient(timeout=httpx.Timeout(timeout=timeout)) as client:
         while has_more_pages:
             url = url_t.format(current_index=current_index, count=page_size)
@@ -215,7 +212,6 @@ async def get_microservice_df(microservice: str) -> pd.DataFrame:
                 logging.warning("Rate limit exceeded. Retrying after delay...")
                 log_rate_limit_headers(response)
                 retry_after = int(response.headers.get("Retry-After", 1))  # Default to 1 second if not provided
-                # time.sleep(retry_after)
                 await asyncio.sleep(retry_after)  # Sleep for the time indicated in the response header before retrying
                 response = await get_http_response(url, ot_headers, client)  # Retry the request
 

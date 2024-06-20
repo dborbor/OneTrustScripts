@@ -45,6 +45,7 @@ async def get_http_response(url: str, headers: dict, client: httpx.AsyncClient) 
     Args:
         url (str): The URL to request.
         headers (dict): A dictionary of headers to include in the request.
+        client (httpx.AsyncClient): The AsyncClient instance to use for making the request.
 
     Returns:
         httpx.Response: The HTTP response object returned by the server.

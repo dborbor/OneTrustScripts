@@ -17,19 +17,20 @@ logging.disable(logging.CRITICAL)  # Comment to view logging // Uncomment to dis
 load_dotenv()
 APP_API_KEY: str = os.getenv("APP_API_KEY", "your app-api-key was not imported")
 
-hostname: str = "app.OneTrust.com/api"
-version: str = "v2"
-ot_headers: dict = {"Authorization": f"Bearer {APP_API_KEY}",
+HOSTNAME: str = "app.OneTrust.com/api"
+VERSION: str = "v2"
+OT_HEADERS: dict = {"Authorization": f"Bearer {APP_API_KEY}",
                     "accept": "application/json", }
 
-default_owner_id: str = "owner_id_not_set"
-default_category: str = "category_not_set"
+DEFAULT_OWNER_ID: str = "owner_id_not_set"
+DEFAULT_CATEGORY: str = "category_not_set"
+
+SHAREPOINT_PATH_MACOS = ("~/Library/CloudStorage/OneDrive-SharedLibraries-GenetecInc"  
+                         "/IT - Global - Documents/GRC/OneTrust/Vendors")
+SHAREPOINT_PATH_WINDOWS = r"~\OneDrive - GenetecInc\IT - Global - Documents\GRC\OneTrust\Vendors"
 
 unique_filename: bool = False  # Change this value to have a timestamped filename
-timeout: float = 30.0
-
-SHAREPOINT_PATH_MACOS = "~/Library/CloudStorage/OneDrive-SharedLibraries-DBInc/OneTrust"
-SHAREPOINT_PATH_WINDOWS = r"~\OneDrive - DBInc\OneTrust"
+timeout: float = 30.0  # Chang this value to change the GET request timeouts
 
 
 @retry(tries=3, delay=1, backoff=2, logger=logger)  # 3 retries, 1s initial delay, doubling backoff
@@ -190,12 +191,12 @@ async def get_microservice_df(microservice: str) -> pd.DataFrame:
     microservice_col_name = {"scim": "Resources", "inventory": "data"}
 
     if microservice == "scim":
-        url_t = f"https://{hostname}/{microservice}/{version}/Users?startIndex={{current_index}}&count={{count}}"
+        url_t = f"https://{HOSTNAME}/{microservice}/{VERSION}/Users?startIndex={{current_index}}&count={{count}}"
         count_parameter: str = "itemsPerPage"
         initial_index = 1
         page_size = 500  # Fetch users in page groups of 500
     else:  # microservice == "inventory"
-        url_t = f"https://{hostname}/{microservice}/{version}/inventories/vendors?page={{current_index}}&size={{count}}"
+        url_t = f"https://{HOSTNAME}/{microservice}/{VERSION}/inventories/vendors?page={{current_index}}&size={{count}}"
         count_parameter: str = "meta.page.size"
         initial_index = 0
         page_size = 50  # Fetch vendors in page groups of 50 (It seems this is the max OneTrust allows)
@@ -208,13 +209,13 @@ async def get_microservice_df(microservice: str) -> pd.DataFrame:
         while has_more_pages:
             url = url_t.format(current_index=current_index, count=page_size)
             # Retry logic for handling timeouts
-            response = await get_http_response(url, ot_headers, client)  # Passing the client object
+            response = await get_http_response(url, OT_HEADERS, client)  # Passing the client object
             while response.status_code == 429:
                 logging.warning("Rate limit exceeded. Retrying after delay...")
                 log_rate_limit_headers(response)
                 retry_after = int(response.headers.get("Retry-After", 1))  # Default to 1 second if not provided
                 await asyncio.sleep(retry_after)  # Sleep for the time indicated in the response header before retrying
-                response = await get_http_response(url, ot_headers, client)  # Retry the request
+                response = await get_http_response(url, OT_HEADERS, client)  # Retry the request
 
             handle_response_status(response)  # Check for errors and raise exceptions if needed.
 
@@ -286,13 +287,13 @@ def process_dataframes(df_users: pd.DataFrame, df_vendors: pd.DataFrame) -> pd.D
     # Extracting the business owner for each vendor entry
     # If no business owner has been set, it will display "owner_id_not_set"
     df_vendors['owner'] = df_vendors['owner'].fillna(
-        {i: [{"id": default_owner_id}] for i in df_vendors.index}
+        {i: [{"id": DEFAULT_OWNER_ID}] for i in df_vendors.index}
     )
     df_vendors['owner'] = df_vendors['owner'].apply(lambda x: x[0]['id'])
     # Extracting the Category value for each vendor entry
     # If no category has been set, it will display "category_not_set"
     df_vendors['customField1000'] = df_vendors['customField1000'].fillna(
-        {i: [{"value": default_category}] for i in df_vendors.index}
+        {i: [{"value": DEFAULT_CATEGORY}] for i in df_vendors.index}
     )
     df_vendors['customField1000'] = df_vendors['customField1000'].apply(lambda x: x[0]['value'])
 

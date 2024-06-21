@@ -1,63 +1,61 @@
 # OneTrustScripts
 Scripts to use with the OneTrust API
 
-## OneTrust Vendor Data Extraction Tool
+## OneTrustScripts
+Scripts to use with the OneTrust API
 
-This Python script is designed to automate the extraction of vendor data from the OneTrust API, along with user information, and merge it into a consolidated report. The report includes details like vendor ID, name, business owner, organization, description, category, and website.
+This Python script automates extracting vendor data from the OneTrust API. It fetches vendor details, optionally includes user information (with two fetching modes for flexibility), and generates reports in Excel (`.xlsx`) and styled HTML (`.html`) formats.
 
 ### Features
 
-- **Efficient Data Retrieval:** Uses asynchronous programming with `asyncio` and `httpx` to fetch data concurrently, optimizing performance.
-- **Automatic Pagination:** Handles paginated responses from the OneTrust API to retrieve all available data.
-- **Error Handling:** Includes robust error handling to gracefully manage network issues, rate limiting, and other potential errors.
-- **Customizable:**  Allows for filtering vendors based on specific criteria (e.g., active vendors in the 'Live' stage).
-- **Output Formats:** Generates both Excel (.xlsx) and HTML (.html) reports for easy sharing and analysis.
-- **SharePoint Integration:** Can save reports directly to a specified SharePoint library if it's synchronized.
+* **Efficient Data Retrieval:** Uses asynchronous operations to optimize data fetching from the OneTrust API, minimizing the impact of large datasets and rate limits.
+* **Flexible User Fetching:** Offers two modes for user data retrieval:
+    - **Targeted Fetching:**  Quickly retrieves only users linked to approved vendors.
+    - **Complete List:**  Fetches the entire list of OneTrust users (may take longer).
+* **Error Handling and Retries:** Includes retry mechanisms for network issues and API rate limits. Detailed logging aids in troubleshooting.
+* **Data Transformation:** Converts complex JSON responses into Pandas DataFrames for easy analysis and reporting.
+* **Customizable Output:**  
+    - Control filename format (with or without timestamps).
+    - Choose to save in a designated SharePoint library or your local Downloads folder.
+    - Adjust the timeout duration for API requests.
+* **Enhanced HTML Report:** Produces a visually appealing HTML report with basic CSS styling.
 
 ### Prerequisites
 
-- **Python:** Requires Python 3.7 or later.
-- **Libraries:**  
-    - Install the required libraries using:
-      ```bash
-      pip install pandas httpx python-dotenv retry
-      ```
-- **OneTrust API Key:** You'll need a valid API key for authentication with the OneTrust API. Obtain this from your OneTrust account.
-- **.env File:** Create a `.env` file in the same directory as the script and add the following line, replacing `your_api_key` with your actual API key: `APP_API_KEY=your_api_key`
+* **Python:** Requires Python 3.7 or later.
+* **Libraries:** Install with `pip install pandas httpx python-dotenv retry`
+* **OneTrust API Key:** Obtain a valid API key from your OneTrust account.
+* **.env File:** Create a `.env` file in the script's directory containing: `APP_API_KEY=your_api_key`
+
 ### Configuration
 
-- **File Paths:** Update `SHAREPOINT_PATH_MACOS` and `SHAREPOINT_PATH_WINDOWS` in the script to reflect the correct paths to your SharePoint library (if you want to use SharePoint).
-- **Unique Filenames:** Set `unique_filename` to `True` if you want each report to have a unique timestamped filename.
+* **File Paths:** Update `SHAREPOINT_PATH_MACOS` and `SHAREPOINT_PATH_WINDOWS` in the script if using SharePoint.
+* **Unique Filenames:** Set `unique_filename` to `True` for timestamped filenames.
+* **User Fetching:** Choose between targeted or complete user fetching by setting `fetch_individual_users` to `True` or `False`.
 
 ### Usage
 
-1. **Clone or Download:** Clone this repository or download the script file.
-2. **Install Dependencies:** Run the following command to install the required libraries:
-
-  ```bash
-  pip install pandas httpx python-dotenv retry
-  ```
-3. **Run the Script:** Execute the script using the following command:
-  ```bash
-  python your_script_name.py
-  ```
-4. **Report Generation:** The script will fetch data from the OneTrust API, process it, and generate the reports in the specified output formats. The reports will be saved in the designated location (SharePoint library or Downloads folder).
-
+1. **Clone or Download:** Obtain the script files.
+2. **Install Dependencies:** Run `pip install pandas httpx python-dotenv retry`.
+3. **Run:** Execute `python your_script_name.py`. The script will create reports in the specified output formats and location.
 
 ### Logging (Optional)
-The script includes logging for debugging and troubleshooting. By default, logging is disabled. To enable logging, comment out the line `logging.disable(logging.CRITICAL)` in the script. Log messages will be written to the console.
 
+Logging is disabled by default. To enable it, comment out the line `logging.disable(logging.CRITICAL)`.
 
 ### License
-This project is licensed under the MIT License - see the LICENSE file for details.
 
-### Acknowledgements
-The script uses the following libraries:
-- `httpx` (for making asynchronous HTTP requests)
-- `pandas` (for data manipulation and analysis)
-- `python-dotenv` (for loading environment variables from `.env` file)
-- `retry` (for retrying failed requests)
+This project is licensed under the MIT License – see the LICENSE file for details.
 
+### Key Script Functions
+
+* **`get_microservice_df`:** Fetches paginated data (users or vendors) from the OneTrust API.
+* **`get_http_response`:**  Handles API requests with retry logic.
+* **`handle_response_status`:**  Verifies response status and provides error details.
+* **`fetch_user_name`:**  (Optional) Fetches user names for specific user IDs.
+* **`process_dataframes`:** Processes and combines data into the final format.
+* **`set_filename` and `set_path`:** Manage output file naming and location.
+* **`save_styled_dataframe_as_html`:**  Creates the styled HTML report.
 
 ### Disclaimer
 This script is provided as-is, without any warranty. Use at your own risk.

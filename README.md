@@ -26,6 +26,7 @@ This Python script automates extracting vendor data from the OneTrust API. It fe
 * **Libraries:** Install the required libraries using the following command:
    ```bash
    pip install -r requirements.txt
+   ```
 * **OneTrust API Key:** Obtain a valid API key from your OneTrust account.
 * **.env File:** Create a `.env` file in the script's directory containing: `APP_API_KEY=your_api_key`
 

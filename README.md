@@ -20,10 +20,12 @@ This Python script automates extracting vendor data from the OneTrust API. It fe
     - Adjust the timeout duration for API requests.
 * **Enhanced HTML Report:** Produces a visually appealing HTML report with basic CSS styling.
 
-### Prerequisites
+## Prerequisites
 
 * **Python:** Requires Python 3.7 or later.
-* **Libraries:** Install with `pip install pandas httpx python-dotenv retry`
+* **Libraries:** Install the required libraries using the following command:
+   ```bash
+   pip install -r requirements.txt
 * **OneTrust API Key:** Obtain a valid API key from your OneTrust account.
 * **.env File:** Create a `.env` file in the script's directory containing: `APP_API_KEY=your_api_key`
 

@@ -25,12 +25,12 @@ OT_HEADERS: dict = {"Authorization": f"Bearer {APP_API_KEY}",
 DEFAULT_OWNER_ID: str = "owner_id_not_set"
 DEFAULT_CATEGORY: str = "category_not_set"
 
-SHAREPOINT_PATH_MACOS = ("~/Library/CloudStorage/OneDrive-SharedLibraries-GenetecInc"  
-                         "/IT - Global - Documents/GRC/OneTrust/Vendors")
-SHAREPOINT_PATH_WINDOWS = r"~\OneDrive - GenetecInc\IT - Global - Documents\GRC\OneTrust\Vendors"
+SHAREPOINT_PATH_MACOS = "~/Library/CloudStorage/OneDrive-SharedLibraries-DBInc/OneTrust"
+SHAREPOINT_PATH_WINDOWS = r"~\OneDrive - DBInc\OneTrust"
 
 unique_filename: bool = False  # Change this value to have a timestamped filename
 timeout: float = 30.0  # Chang this value to change the GET request timeouts
+fetch_individual_users: bool = True  # If False, script will fetch ALL users (takes more time)
 
 
 @retry(tries=3, delay=1, backoff=2, logger=logger)  # 3 retries, 1s initial delay, doubling backoff
@@ -73,7 +73,7 @@ async def get_http_response(url: str, headers: dict, client: httpx.AsyncClient) 
         raise
 
 
-def handle_response_status(response: httpx.Response):
+def handle_response_status(response: httpx.Response) -> None:
     """
     Checks the status of an HTTP response and logs a corresponding message.
     Raises an exception for unsuccessful responses.
@@ -136,7 +136,7 @@ def handle_response_status(response: httpx.Response):
             logging.info("Check https://developer.onetrust.com/onetrust/reference/quick-start-guide")
 
 
-def log_rate_limit_headers(response):
+def log_rate_limit_headers(response: httpx.Response) -> int:
     """
     Logs rate limit headers from an HTTP 429 response.
 
@@ -146,6 +146,9 @@ def log_rate_limit_headers(response):
 
     Args:
         response (httpx.Response): The HTTP response object (ideally a 429 Too Many Requests response).
+    Returns:
+        int: The value of the "Retry-After" header, or 1 if the header is not present. This indicates the
+             number of seconds to wait before retrying the request.
     """
     headers_to_log = ["Retry-After",
                       "ot-period",
@@ -153,15 +156,36 @@ def log_rate_limit_headers(response):
                       "ot-requests-allowed",
                       "ot-request-made",
                       ]
+    retry_after = 1  # Default to 1 second if Retry-After is not present
+
     for header in headers_to_log:
         value = response.headers.get(header)
         if value:
+            if header == "Retry-After":
+                retry_after = int(value)
             logging.info(f"{header}: {value}")
+
+    return retry_after
+
+
+def get_normalized_json_response_df(response: httpx.Response) -> pd.DataFrame:
+    """
+    Fetches JSON data from a given URL, normalizes it, and returns a DataFrame.
+
+    Args:
+        response: The http response object.
+
+    Returns:
+        pd.DataFrame: A DataFrame containing the normalized JSON data.
+    """
+    parsed_response = json.loads(response.text)  # Parse the JSON response
+    return pd.json_normalize(parsed_response)  # Normalize and return as DataFrame
 
 
 async def get_microservice_df(microservice: str) -> pd.DataFrame:
     """
-    Asynchronously retrieves paginated data from the OneTrust API for a specified microservice ("scim" or "inventory").
+    Asynchronously retrieves paginated data from the OneTrust API for a specified microservice
+    ("scim" for a complete list of users, or "inventory" for a complete list of vendors).
 
     This asynchronous function fetches data from the OneTrust API in paginated requests,
     handling pagination and potential rate limiting,
@@ -212,8 +236,7 @@ async def get_microservice_df(microservice: str) -> pd.DataFrame:
             response = await get_http_response(url, OT_HEADERS, client)  # Passing the client object
             while response.status_code == 429:
                 logging.warning("Rate limit exceeded. Retrying after delay...")
-                log_rate_limit_headers(response)
-                retry_after = int(response.headers.get("Retry-After", 1))  # Default to 1 second if not provided
+                retry_after = log_rate_limit_headers(response)  # Default to 1 second if not provided
                 await asyncio.sleep(retry_after)  # Sleep for the time indicated in the response header before retrying
                 response = await get_http_response(url, OT_HEADERS, client)  # Retry the request
 
@@ -246,18 +269,35 @@ async def get_microservice_df(microservice: str) -> pd.DataFrame:
     return microservice_df
 
 
-def get_normalized_json_response_df(response: httpx.Response) -> pd.DataFrame:
+@retry(tries=3, delay=1, backoff=2, logger=logger)  # Retry logic for network issues
+async def fetch_user_name(client: httpx.AsyncClient, user_id: str) -> str | None:
     """
-    Fetches JSON data from a given URL, normalizes it, and returns a DataFrame.
+    Asynchronously fetches the userName associated with a given userID from the OneTrust API.
 
     Args:
-        response: The http response object.
+        client (httpx.AsyncClient): An initialized httpx AsyncClient instance for making API requests.
+        user_id (str): The unique identifier of the user whose userName is to be retrieved.
 
     Returns:
-        pd.DataFrame: A DataFrame containing the normalized JSON data.
+        str | None: The userName of the user if found, otherwise None.
+
+    Raises:
+        httpx.ConnectTimeout: If a connection to the server cannot be established.
+        httpx.ReadTimeout: If the server does not send data within the timeout defined within the AsyncClient.
+        httpx.TimeoutException: If the entire request (connect + read) takes longer than the timeout defined
+                                within the AsyncClient.
+        httpx.NetworkError: For general network-related errors.
+        httpx.HTTPError: For other HTTP errors (e.g., status codes 4xx and 5xx).
     """
-    parsed_response = json.loads(response.text)  # Parse the JSON response
-    return pd.json_normalize(parsed_response)  # Normalize and return as DataFrame
+    url = f"https://{HOSTNAME}/scim/{VERSION}/Users/{user_id}"
+    try:
+        response = await client.get(url, headers=OT_HEADERS)
+        handle_response_status(response)
+        df_from_normalized_json = get_normalized_json_response_df(response)
+        return df_from_normalized_json['userName'].values[0]
+    except (KeyError, IndexError):
+        logging.warning(f"userName not found for userID: {user_id}")
+        return None
 
 
 def process_dataframes(df_users: pd.DataFrame, df_vendors: pd.DataFrame) -> pd.DataFrame:
@@ -265,7 +305,7 @@ def process_dataframes(df_users: pd.DataFrame, df_vendors: pd.DataFrame) -> pd.D
     Processes and merges vendor and user dataframes, preparing them for further analysis.
 
     1. Extracts relevant data from the `df_vendors` DataFrame:
-        - Sets default values for missing owner and category fields.
+        - Sets default values category fields.
         - Filters to include only active vendors in the 'Live' workflow stage.
     2. Processes `df_users`:
         - Converts usernames (emails) to lowercase.
@@ -285,10 +325,6 @@ def process_dataframes(df_users: pd.DataFrame, df_vendors: pd.DataFrame) -> pd.D
         pd.DataFrame: The processed and merged DataFrame, ready for analysis.
     """
     # Extracting the business owner for each vendor entry
-    # If no business owner has been set, it will display "owner_id_not_set"
-    df_vendors['owner'] = df_vendors['owner'].fillna(
-        {i: [{"id": DEFAULT_OWNER_ID}] for i in df_vendors.index}
-    )
     df_vendors['owner'] = df_vendors['owner'].apply(lambda x: x[0]['id'])
     # Extracting the Category value for each vendor entry
     # If no category has been set, it will display "category_not_set"
@@ -444,9 +480,27 @@ def save_styled_dataframe_as_html(df: pd.DataFrame, save_dir: str, name: str) ->
         f.write(html)
 
 
-async def main():
-    df_users_data = await get_microservice_df("scim")
+async def main() -> None:
     df_vendors_data = await get_microservice_df("inventory")
+    # Sets default values for owner field if it finds NaN values
+    df_vendors_data['owner'] = df_vendors_data['owner'].fillna(
+        {i: [{"id": DEFAULT_OWNER_ID}] for i in df_vendors_data.index}
+    )
+    if fetch_individual_users:
+        unique_owners = df_vendors_data['owner'].apply(lambda x: x[0]['id']).unique()
+        filtered_owners = [owner for owner in unique_owners if owner != DEFAULT_OWNER_ID]
+
+        async with httpx.AsyncClient(timeout=httpx.Timeout(timeout=timeout)) as client:
+            tasks = [fetch_user_name(client, user_id) for user_id in filtered_owners]
+            user_data = await asyncio.gather(*tasks)
+
+        # Create df_users_data DataFrame
+        df_users_data = pd.DataFrame({
+            'id': filtered_owners,
+            'userName': user_data
+        })
+    else:
+        df_users_data = await get_microservice_df("scim")
 
     df_approved_vendors = process_dataframes(df_users_data, df_vendors_data)
 

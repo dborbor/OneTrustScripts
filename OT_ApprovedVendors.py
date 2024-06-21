@@ -164,7 +164,7 @@ async def get_microservice_df(microservice: str) -> pd.DataFrame:
 
     This asynchronous function fetches data from the OneTrust API in paginated requests,
     handling pagination and potential rate limiting,
-    normalizes the JSON response into a Pandas DataFrame,.
+    normalizes the JSON response into a Pandas DataFrame.
 
     Args:
         microservice (str): The name of the microservice. Must be one of the following:
@@ -330,8 +330,8 @@ def process_dataframes(df_users: pd.DataFrame, df_vendors: pd.DataFrame) -> pd.D
         )
     )
 
-    # Setting 1-based index instead of the default 0-based index
-    df.index = range(1, len(df) + 1)
+    df.index = range(1, len(df) + 1)  # Setting 1-based index instead of the default 0-based index
+    print(f"There are {df.shape[0]} approved vendors.")  # get number of vendors approved
     return df
 
 
@@ -390,6 +390,59 @@ def set_path(win_sp_path: str, mac_sp_path: str) -> str:
     return downloads_path
 
 
+def save_styled_dataframe_as_html(df: pd.DataFrame, save_dir: str, name: str) -> None:
+    """
+    Creates and saves a styled HTML table from a pandas DataFrame.
+
+    This function converts the input DataFrame into an HTML table and applies CSS styling to improve
+    its appearance. The styled table is then saved as an HTML file in the specified directory.
+
+    Args:
+        df (pd.DataFrame): The Pandas DataFrame containing the data to be displayed in the table.
+        save_dir (str): The directory where the HTML file will be saved.
+        name (str): The name of the HTML file (without the '.html' extension).
+    """
+    html = df.to_html(justify='left',  # How to justify the column labels.
+                      render_links=True,  # Convert URLs to HTML links
+                      index=False,  # Whether to print index (row) labels.
+                      )  # save it as html file
+    # Adding CSS to the HTML string
+    html = """
+    <html>
+    <head>
+        <style>
+            table {
+                font-family: Arial, Helvetica, sans-serif;
+                font-size: 15px;
+                width: 100%;
+                border: 0;  /* Remove borders */
+            }
+            th, td {
+                padding: 7px;  /* Add padding */
+                border: none;  /* Remove cell borders */
+            }
+            thead th {
+                background-color: #808080;  /* Header background color */
+                color: white;  /* Set text color to white for better contrast */
+            }
+            tr:nth-child(even) {
+                background-color: #f2f2f2;  /* Even row background color */
+            }
+            tr:nth-child(odd) {
+                background-color: #ffffff;  /* Odd row background color */
+            }
+        </style>
+    </head>
+    <body>
+        """ + html + """
+    </body>
+    </html>
+    """
+    # Writing the HTML string to a file
+    with open(os.path.join(save_dir, f"{name}.html"), "w") as f:
+        f.write(html)
+
+
 async def main():
     df_users_data = await get_microservice_df("scim")
     df_vendors_data = await get_microservice_df("inventory")
@@ -404,7 +457,9 @@ async def main():
                                  index=True,
                                  )  # save it as Excel file
 
-    df_approved_vendors.to_html(os.path.join(path, f"{filename}.html"))  # save it as html file
+    save_styled_dataframe_as_html(df_approved_vendors, path, filename)
+
+    print("Done!")
 
 
 if __name__ == '__main__':

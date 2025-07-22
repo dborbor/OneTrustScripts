@@ -1,0 +1,28 @@
+onetrust:
+  # onetrust_api_key: ${APP_API_KEY}
+  hostname: "app.OneTrust.com/api"
+  version: "v2"
+  headers:
+    Authorization: "Bearer ${APP_API_KEY}"
+    accept: "application/json"
+  default_owner_id: "owner_id_not_set"
+  default_category: "category_not_set"
+
+confluence:
+  username: ${CONFLUENCE_SVC_USER}
+  password: ${CONFLUENCE_GRC_API_TOKEN}
+  url: "https://<your_company_name>.atlassian.net"
+  space: "GRC"
+
+timeouts:
+  http_request: 30.0   # Change this value to change the GET request timeouts
+
+filepaths:
+  sharepoint_vendors_macos: "~/Library/CloudStorage/OneDrive-SharedLibraries-<your_company_case>/<your_sharepoint_documents>/GRC/OneTrust/Vendors"
+  sharepoint_vendors_windows: r"~\OneDrive - <your_company_case>\<your_sharepoint_documents>\GRC\OneTrust\Vendors"
+  sharepoint_assets_macos: "~/Library/CloudStorage/OneDrive-SharedLibraries-<your_company_case>/<your_sharepoint_documents>/GRC/OneTrust/Assets"
+  sharepoint_assets_windows: r"~\OneDrive - <your_company_case>\<your_sharepoint_documents>\GRC\OneTrust\Assets"
+  sharepoint_ai_macos: "~/Library/CloudStorage/OneDrive-SharedLibraries-<your_company_case>/<your_sharepoint_documents>/GRC/OneTrust/AI"
+  sharepoint_ai_windows: r"~\OneDrive - <your_company_case>\<your_sharepoint_documents>\GRC\OneTrust\AI"
+  sharepoint_offline_sw_macos: "~/Library/CloudStorage/OneDrive-SharedLibraries-<your_company_case>/<your_sharepoint_documents>/GRC/OneTrust/OfflineSoftware"
+  sharepoint_offline_sw_windows: r"~\OneDrive - <your_company_case>\<your_sharepoint_documents>\GRC\OneTrust\OfflineSoftware"

@@ -4,3 +4,6 @@ pandas~=2.2.2
 retry~=0.9.2
 python-dotenv~=1.0.1
 openpyxl~=3.1.4
+atlassian-python-api~=3.41.14
+beautifulsoup4~=4.12.3
+pyyaml~=6.0.2
